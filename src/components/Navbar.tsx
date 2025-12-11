@@ -3,6 +3,7 @@ import { Button } from './ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { Menu, X, LogOut, Calendar, User, Shield, Users } from 'lucide-react';
 import { useState } from 'react';
+import logo from '@/assets/logo.png';
 
 const Navbar = () => {
   const { user, signOut, userRole } = useAuth();
@@ -13,7 +14,7 @@ const Navbar = () => {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           <Link to="/" className="flex items-center space-x-2">
-            <div className="text-2xl font-serif font-bold text-gold">Lux</div>
+            <img src={logo} alt="Barbearia Lux" className="h-12 w-auto" />
           </Link>
 
           {/* Desktop Menu */}
