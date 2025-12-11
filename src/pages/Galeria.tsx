@@ -6,15 +6,15 @@ const Galeria = () => {
   const imagens = [
     {
       url: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=800',
-      alt: 'Corte de cabelo masculino premium',
-    },
-    {
-      url: 'https://images.unsplash.com/photo-1621605815971-fbc98d665033?auto=format&fit=crop&w=800',
       alt: 'Barba bem feita',
     },
     {
+      url: 'https://images.unsplash.com/photo-1621605815971-fbc98d665033?auto=format&fit=crop&w=800',
+      alt: 'Produtos premium',
+    },
+    {
       url: 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=800',
-      alt: 'Corte degradê',
+      alt: 'Ambiente da barbearia',
     },
     {
       url: 'https://images.unsplash.com/photo-1598971639058-fab3c3109a00?auto=format&fit=crop&w=800',
@@ -22,11 +22,11 @@ const Galeria = () => {
     },
     {
       url: 'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?auto=format&fit=crop&w=800',
-      alt: 'Ambiente da barbearia',
+      alt: 'Corte degradê',
     },
     {
       url: 'https://images.unsplash.com/photo-1605497788044-5a32c7078486?auto=format&fit=crop&w=800',
-      alt: 'Produtos premium',
+      alt: 'Corte de cabelo masculino premium',
     },
   ];
 
