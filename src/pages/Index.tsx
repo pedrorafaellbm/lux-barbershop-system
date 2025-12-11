@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Scissors, Star, Clock, Shield } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import logo from '@/assets/logo.png';
 
 const Index = () => {
   const servicos = [
@@ -36,6 +37,7 @@ const Index = () => {
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=1920')] bg-cover bg-center opacity-10"></div>
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-3xl mx-auto text-center">
+            <img src={logo} alt="Barbearia Lux Logo" className="h-40 md:h-56 w-auto mx-auto mb-6 animate-fade-in" />
             <h1 className="font-serif text-5xl md:text-7xl font-bold mb-6 text-foreground animate-fade-in">
               Barbearia <span className="text-gold">Lux</span>
             </h1>
