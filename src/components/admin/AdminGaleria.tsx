@@ -24,7 +24,7 @@ const AdminGaleria = () => {
 
   const fetchImagens = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('galeria')
         .select('*')
         .order('created_at', { ascending: false });
@@ -51,7 +51,7 @@ const AdminGaleria = () => {
 
     setSaving(true);
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('galeria')
         .insert({ url: formData.url, alt: formData.alt });
 
@@ -70,7 +70,7 @@ const AdminGaleria = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      const { error } = await supabase.from('galeria').delete().eq('id', id);
+      const { error } = await (supabase as any).from('galeria').delete().eq('id', id);
       if (error) throw error;
       toast.success('Imagem removida com sucesso');
       fetchImagens();

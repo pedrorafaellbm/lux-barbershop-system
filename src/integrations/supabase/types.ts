@@ -129,6 +129,27 @@ export type Database = {
         }
         Relationships: []
       }
+      galeria: {
+        Row: {
+          alt: string
+          created_at: string
+          id: string
+          url: string
+        }
+        Insert: {
+          alt: string
+          created_at?: string
+          id?: string
+          url: string
+        }
+        Update: {
+          alt?: string
+          created_at?: string
+          id?: string
+          url?: string
+        }
+        Relationships: []
+      }
       login_attempts: {
         Row: {
           bloqueado_ate: string | null
