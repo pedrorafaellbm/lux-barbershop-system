@@ -1,34 +1,79 @@
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
-import { Instagram } from 'lucide-react';
+import { Instagram, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
+interface GaleriaItem {
+  id: string;
+  url: string;
+  alt: string;
+}
+
+const imagensPadrao = [
+  {
+    url: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=800',
+    alt: 'Barba bem feita',
+  },
+  {
+    url: 'https://images.unsplash.com/photo-1621605815971-fbc98d665033?auto=format&fit=crop&w=800',
+    alt: 'Produtos premium',
+  },
+  {
+    url: 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=800',
+    alt: 'Ambiente da barbearia',
+  },
+  {
+    url: 'https://images.unsplash.com/photo-1598971639058-fab3c3109a00?auto=format&fit=crop&w=800',
+    alt: 'Cliente satisfeito',
+  },
+  {
+    url: 'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?auto=format&fit=crop&w=800',
+    alt: 'Corte degradê',
+  },
+  {
+    url: 'https://images.unsplash.com/photo-1605497788044-5a32c7078486?auto=format&fit=crop&w=800',
+    alt: 'Corte de cabelo masculino premium',
+  },
+];
+
 const Galeria = () => {
-  const imagens = [
-    {
-      url: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=800',
-      alt: 'Barba bem feita',
-    },
-    {
-      url: 'https://images.unsplash.com/photo-1621605815971-fbc98d665033?auto=format&fit=crop&w=800',
-      alt: 'Produtos premium',
-    },
-    {
-      url: 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=800',
-      alt: 'Ambiente da barbearia',
-    },
-    {
-      url: 'https://images.unsplash.com/photo-1598971639058-fab3c3109a00?auto=format&fit=crop&w=800',
-      alt: 'Cliente satisfeito',
-    },
-    {
-      url: 'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?auto=format&fit=crop&w=800',
-      alt: 'Corte degradê',
-    },
-    {
-      url: 'https://images.unsplash.com/photo-1605497788044-5a32c7078486?auto=format&fit=crop&w=800',
-      alt: 'Corte de cabelo masculino premium',
-    },
-  ];
+  const [imagens, setImagens] = useState<{ url: string; alt: string }[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchImagens = async () => {
+      try {
+        const { data, error } = await (supabase as any)
+          .from('galeria')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          setImagens(data);
+        } else {
+          setImagens(imagensPadrao);
+        }
+      } catch (error) {
+        console.error('Erro ao buscar galeria:', error);
+        setImagens(imagensPadrao);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchImagens();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-gold" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen py-12">
