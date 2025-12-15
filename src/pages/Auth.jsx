@@ -37,7 +37,7 @@ const Auth = () => {
     password: '',
     confirmPassword: '',
   });
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     if (user) {
@@ -45,7 +45,7 @@ const Auth = () => {
     }
   }, [user, navigate]);
 
-  const handleSignUp = async (e: React.FormEvent) => {
+  const handleSignUp = async (e) => {
     e.preventDefault();
     setErrors({});
     
@@ -71,7 +71,7 @@ const Auth = () => {
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
-        const fieldErrors: Record<string, string> = {};
+        const fieldErrors = {};
         error.errors.forEach((err) => {
           if (err.path) {
             fieldErrors[err.path[0]] = err.message;
@@ -84,7 +84,7 @@ const Auth = () => {
     }
   };
 
-  const handleSignIn = async (e: React.FormEvent) => {
+  const handleSignIn = async (e) => {
     e.preventDefault();
     setErrors({});
     
@@ -110,7 +110,7 @@ const Auth = () => {
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
-        const fieldErrors: Record<string, string> = {};
+        const fieldErrors = {};
         error.errors.forEach((err) => {
           if (err.path) {
             fieldErrors[err.path[0]] = err.message;

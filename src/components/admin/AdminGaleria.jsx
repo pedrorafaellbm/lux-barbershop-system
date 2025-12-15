@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,34 +8,17 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from 'sonner';
 import { Loader2, Plus, Trash2 } from 'lucide-react';
 
-interface GaleriaItem {
-  id: string;
-  url: string;
-  alt: string;
-}
-
 const AdminGaleria = () => {
-  const [imagens, setImagens] = useState<GaleriaItem[]>([]);
+  const [imagens, setImagens] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [formData, setFormData] = useState({ url: '', alt: '' });
   const [saving, setSaving] = useState(false);
 
   const fetchImagens = async () => {
-    try {
-      const { data, error } = await (supabase as any)
-        .from('galeria')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setImagens(data || []);
-    } catch (error) {
-      console.error('Erro ao buscar imagens:', error);
-      toast.error('Erro ao carregar galeria');
-    } finally {
-      setLoading(false);
-    }
+    // Gallery API endpoint can be added later
+    setImagens([]);
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -51,15 +33,10 @@ const AdminGaleria = () => {
 
     setSaving(true);
     try {
-      const { error } = await (supabase as any)
-        .from('galeria')
-        .insert({ url: formData.url, alt: formData.alt });
-
-      if (error) throw error;
-      toast.success('Imagem adicionada com sucesso');
+      // API call would go here
+      toast.info('Funcionalidade de galeria será implementada com endpoint da API');
       setDialogOpen(false);
       setFormData({ url: '', alt: '' });
-      fetchImagens();
     } catch (error) {
       console.error('Erro ao salvar imagem:', error);
       toast.error('Erro ao salvar imagem');
@@ -68,12 +45,10 @@ const AdminGaleria = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id) => {
     try {
-      const { error } = await (supabase as any).from('galeria').delete().eq('id', id);
-      if (error) throw error;
-      toast.success('Imagem removida com sucesso');
-      fetchImagens();
+      // API call would go here
+      toast.info('Funcionalidade de galeria será implementada com endpoint da API');
     } catch (error) {
       console.error('Erro ao remover imagem:', error);
       toast.error('Erro ao remover imagem');
@@ -152,7 +127,7 @@ const AdminGaleria = () => {
       </CardHeader>
       <CardContent>
         {imagens.length === 0 ? (
-          <p className="text-muted-foreground text-center py-4">Nenhuma imagem na galeria</p>
+          <p className="text-muted-foreground text-center py-4">Nenhuma imagem na galeria. Adicione endpoints de galeria à sua API.</p>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {imagens.map((imagem) => (

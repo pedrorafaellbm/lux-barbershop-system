@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Loader2, X, Calendar as CalendarIcon, Clock, User, Scissors } from 'lucide-react';
 import { ptBR } from 'date-fns/locale';
@@ -23,20 +22,22 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { barbeirosApi, servicosApi, agendamentosApi } from '@/lib/api';
 
 const Agendamento = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const [barbeiros, setBarbeiros] = useState<any[]>([]);
-  const [servicos, setServicos] = useState<any[]>([]);
+  const [barbeiros, setBarbeiros] = useState([]);
+  const [servicos, setServicos] = useState([]);
   const [selectedBarbeiro, setSelectedBarbeiro] = useState('');
   const [selectedServico, setSelectedServico] = useState('');
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-  const [availableHours, setAvailableHours] = useState<string[]>([]);
+  const [selectedDate, setSelectedDate] = useState(undefined);
+  const [availableHours, setAvailableHours] = useState([]);
   const [selectedHour, setSelectedHour] = useState('');
   const [loading, setLoading] = useState(false);
-  const [meusAgendamentos, setMeusAgendamentos] = useState<any[]>([]);
-  const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [meusAgendamentos, setMeusAgendamentos] = useState([]);
+  const [cancellingId, setCancellingId] = useState(null);
+  const [allAgendamentos, setAllAgendamentos] = useState([]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -56,17 +57,12 @@ const Agendamento = () => {
     if (selectedDate && selectedBarbeiro) {
       fetchAvailableHours();
     }
-  }, [selectedDate, selectedBarbeiro]);
+  }, [selectedDate, selectedBarbeiro, allAgendamentos]);
 
   const fetchBarbeiros = async () => {
     try {
-      const { data, error } = await supabase
-        .from('barbeiros')
-        .select('*')
-        .eq('ativo', true);
-      
-      if (error) throw error;
-      setBarbeiros(data || []);
+      const data = await barbeirosApi.getAll();
+      setBarbeiros((data || []).filter(b => b.ativo));
     } catch (error) {
       console.error('Error fetching barbeiros:', error);
     }
@@ -74,13 +70,8 @@ const Agendamento = () => {
 
   const fetchServicos = async () => {
     try {
-      const { data, error } = await supabase
-        .from('servicos')
-        .select('*')
-        .eq('ativo', true);
-      
-      if (error) throw error;
-      setServicos(data || []);
+      const data = await servicosApi.getAll();
+      setServicos((data || []).filter(s => s.ativo));
     } catch (error) {
       console.error('Error fetching servicos:', error);
     }
@@ -91,17 +82,13 @@ const Agendamento = () => {
 
     try {
       const dateStr = selectedDate.toISOString().split('T')[0];
-      
-      const { data, error } = await supabase
-        .from('agendamentos')
-        .select('hora_inicio, hora_fim')
-        .eq('barbeiro_id', selectedBarbeiro)
-        .eq('data', dateStr)
-        .neq('status', 'cancelado');
+      const agendamentos = await agendamentosApi.getAll();
+      setAllAgendamentos(agendamentos || []);
 
-      if (error) throw error;
+      const occupiedSlots = (agendamentos || []).filter(
+        a => a.barbeiro_id === selectedBarbeiro && a.data === dateStr && a.status !== 'cancelado'
+      );
 
-      const occupiedSlots = data || [];
       const allHours = generateTimeSlots();
       const available = allHours.filter(hour => {
         return !occupiedSlots.some(slot => {
@@ -117,7 +104,7 @@ const Agendamento = () => {
   };
 
   const generateTimeSlots = () => {
-    const slots: string[] = [];
+    const slots = [];
     const startHour = 10;
     const endHour = 18;
     const intervalMinutes = 40;
@@ -136,47 +123,23 @@ const Agendamento = () => {
     if (!user) return;
 
     try {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (!profile) return;
-
-      const { data, error } = await supabase
-        .from('agendamentos')
-        .select(`
-          *,
-          barbeiros:barbeiro_id (nome),
-          servicos:servico_id (nome, preco)
-        `)
-        .eq('cliente_id', profile.id)
-        .neq('status', 'cancelado')
-        .gte('data', new Date().toISOString().split('T')[0])
-        .order('data', { ascending: true });
-
-      if (error) throw error;
-      setMeusAgendamentos(data || []);
+      const data = await agendamentosApi.getByUser();
+      const today = new Date().toISOString().split('T')[0];
+      const filtered = (data || []).filter(a => a.status !== 'cancelado' && a.data >= today);
+      setMeusAgendamentos(filtered);
     } catch (error) {
       console.error('Error fetching agendamentos:', error);
     }
   };
 
-  const handleCancelAgendamento = async (agendamentoId: string) => {
+  const handleCancelAgendamento = async (agendamentoId) => {
     setCancellingId(agendamentoId);
     try {
-      const { error } = await supabase
-        .from('agendamentos')
-        .update({ status: 'cancelado' })
-        .eq('id', agendamentoId);
-
-      if (error) throw error;
-
+      await agendamentosApi.update(agendamentoId, { status: 'cancelado' });
       toast.success('Agendamento cancelado com sucesso!');
       fetchMeusAgendamentos();
       fetchAvailableHours();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error cancelling agendamento:', error);
       toast.error('Erro ao cancelar agendamento: ' + error.message);
     } finally {
@@ -184,8 +147,8 @@ const Agendamento = () => {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    const variants: Record<string, { variant: 'default' | 'secondary' | 'destructive' | 'outline'; label: string }> = {
+  const getStatusBadge = (status) => {
+    const variants = {
       pendente: { variant: 'secondary', label: 'Pendente' },
       confirmado: { variant: 'default', label: 'Confirmado' },
       concluido: { variant: 'outline', label: 'Concluído' },
@@ -195,7 +158,7 @@ const Agendamento = () => {
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!selectedBarbeiro || !selectedServico || !selectedDate || !selectedHour) {
@@ -206,14 +169,6 @@ const Agendamento = () => {
     setLoading(true);
 
     try {
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('user_id', user?.id)
-        .single();
-
-      if (profileError) throw profileError;
-
       const selectedServicoData = servicos.find(s => s.id === selectedServico);
       const duracao = selectedServicoData?.duracao || 40;
 
@@ -222,19 +177,14 @@ const Agendamento = () => {
       endTime.setHours(parseInt(startHour), parseInt(startMinute) + duracao);
       const endHourStr = `${endTime.getHours().toString().padStart(2, '0')}:${endTime.getMinutes().toString().padStart(2, '0')}`;
 
-      const { error: agendamentoError } = await supabase
-        .from('agendamentos')
-        .insert({
-          cliente_id: profile.id,
-          barbeiro_id: selectedBarbeiro,
-          servico_id: selectedServico,
-          data: selectedDate.toISOString().split('T')[0],
-          hora_inicio: selectedHour,
-          hora_fim: endHourStr,
-          status: 'pendente',
-        });
-
-      if (agendamentoError) throw agendamentoError;
+      await agendamentosApi.create({
+        barbeiro_id: selectedBarbeiro,
+        servico_id: selectedServico,
+        data: selectedDate.toISOString().split('T')[0],
+        hora_inicio: selectedHour,
+        hora_fim: endHourStr,
+        status: 'pendente',
+      });
 
       toast.success('Agendamento realizado com sucesso!');
       
@@ -244,7 +194,7 @@ const Agendamento = () => {
       setSelectedHour('');
       setAvailableHours([]);
       fetchMeusAgendamentos();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error creating agendamento:', error);
       toast.error('Erro ao criar agendamento: ' + error.message);
     } finally {
@@ -252,7 +202,7 @@ const Agendamento = () => {
     }
   };
 
-  const isDayDisabled = (date: Date) => {
+  const isDayDisabled = (date) => {
     const day = date.getDay();
     return day === 0;
   };
@@ -366,7 +316,6 @@ const Agendamento = () => {
           </CardContent>
         </Card>
 
-        {/* Meus Agendamentos Section */}
         {meusAgendamentos.length > 0 && (
           <Card className="bg-card border-border shadow-elegant mt-8">
             <CardHeader>
@@ -386,19 +335,21 @@ const Agendamento = () => {
                           {format(new Date(agendamento.data + 'T00:00:00'), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
                         </span>
                         <Clock className="h-4 w-4 text-gold ml-2" />
-                        <span>{agendamento.hora_inicio.substring(0, 5)}</span>
+                        <span>{agendamento.hora_inicio?.substring(0, 5)}</span>
                         {getStatusBadge(agendamento.status)}
                       </div>
                       <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
                         <div className="flex items-center gap-1">
                           <User className="h-3 w-3" />
-                          <span>{agendamento.barbeiros?.nome}</span>
+                          <span>{agendamento.barbeiro?.nome || agendamento.barbeiro_id}</span>
                         </div>
                         <div className="flex items-center gap-1">
                           <Scissors className="h-3 w-3" />
-                          <span>{agendamento.servicos?.nome}</span>
+                          <span>{agendamento.servico?.nome || agendamento.servico_id}</span>
                         </div>
-                        <span>R$ {agendamento.servicos?.preco?.toFixed(2)}</span>
+                        {agendamento.servico?.preco && (
+                          <span>R$ {agendamento.servico.preco.toFixed(2)}</span>
+                        )}
                       </div>
                     </div>
                     

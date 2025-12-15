@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,40 +8,21 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Loader2, X } from 'lucide-react';
-
-interface Agendamento {
-  id: string;
-  data: string;
-  hora_inicio: string;
-  hora_fim: string;
-  status: string;
-  observacoes: string | null;
-  pago: boolean;
-  profiles: { nome: string } | null;
-  barbeiros: { nome: string } | null;
-  servicos: { nome: string; preco: number } | null;
-}
+import { agendamentosApi } from '@/lib/api';
 
 const AdminAgendamentos = () => {
-  const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
+  const [agendamentos, setAgendamentos] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [cancellingId, setCancellingId] = useState(null);
 
   const fetchAgendamentos = async () => {
     try {
-      const { data, error } = await supabase
-        .from('agendamentos')
-        .select(`
-          *,
-          profiles:cliente_id(nome),
-          barbeiros:barbeiro_id(nome),
-          servicos:servico_id(nome, preco)
-        `)
-        .order('data', { ascending: false })
-        .order('hora_inicio', { ascending: true });
-
-      if (error) throw error;
-      setAgendamentos(data || []);
+      const data = await agendamentosApi.getAll();
+      const sorted = (data || []).sort((a, b) => {
+        if (a.data !== b.data) return b.data.localeCompare(a.data);
+        return a.hora_inicio.localeCompare(b.hora_inicio);
+      });
+      setAgendamentos(sorted);
     } catch (error) {
       console.error('Erro ao buscar agendamentos:', error);
       toast.error('Erro ao carregar agendamentos');
@@ -55,15 +35,10 @@ const AdminAgendamentos = () => {
     fetchAgendamentos();
   }, []);
 
-  const handleCancelAgendamento = async (id: string) => {
+  const handleCancelAgendamento = async (id) => {
     setCancellingId(id);
     try {
-      const { error } = await supabase
-        .from('agendamentos')
-        .update({ status: 'cancelado' })
-        .eq('id', id);
-
-      if (error) throw error;
+      await agendamentosApi.update(id, { status: 'cancelado' });
       toast.success('Agendamento cancelado com sucesso');
       fetchAgendamentos();
     } catch (error) {
@@ -74,8 +49,8 @@ const AdminAgendamentos = () => {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    const statusMap: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
+  const getStatusBadge = (status) => {
+    const statusMap = {
       pendente: { label: 'Pendente', variant: 'secondary' },
       confirmado: { label: 'Confirmado', variant: 'default' },
       cancelado: { label: 'Cancelado', variant: 'destructive' },
@@ -114,7 +89,6 @@ const AdminAgendamentos = () => {
                   <TableHead>Serviço</TableHead>
                   <TableHead>Valor</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Pago</TableHead>
                   <TableHead>Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -124,17 +98,12 @@ const AdminAgendamentos = () => {
                     <TableCell>
                       {format(new Date(agendamento.data + 'T00:00:00'), "dd/MM/yyyy", { locale: ptBR })}
                     </TableCell>
-                    <TableCell>{agendamento.hora_inicio.slice(0, 5)}</TableCell>
-                    <TableCell>{agendamento.profiles?.nome || 'N/A'}</TableCell>
-                    <TableCell>{agendamento.barbeiros?.nome || 'N/A'}</TableCell>
-                    <TableCell>{agendamento.servicos?.nome || 'N/A'}</TableCell>
-                    <TableCell>R$ {agendamento.servicos?.preco?.toFixed(2) || '0,00'}</TableCell>
+                    <TableCell>{agendamento.hora_inicio?.slice(0, 5)}</TableCell>
+                    <TableCell>{agendamento.cliente?.nome || agendamento.cliente_id || 'N/A'}</TableCell>
+                    <TableCell>{agendamento.barbeiro?.nome || agendamento.barbeiro_id || 'N/A'}</TableCell>
+                    <TableCell>{agendamento.servico?.nome || agendamento.servico_id || 'N/A'}</TableCell>
+                    <TableCell>R$ {agendamento.servico?.preco?.toFixed(2) || '0,00'}</TableCell>
                     <TableCell>{getStatusBadge(agendamento.status || 'pendente')}</TableCell>
-                    <TableCell>
-                      <Badge variant={agendamento.pago ? 'default' : 'secondary'}>
-                        {agendamento.pago ? 'Sim' : 'Não'}
-                      </Badge>
-                    </TableCell>
                     <TableCell>
                       {agendamento.status !== 'cancelado' && agendamento.status !== 'concluido' && (
                         <AlertDialog>
@@ -155,7 +124,7 @@ const AdminAgendamentos = () => {
                             <AlertDialogHeader>
                               <AlertDialogTitle>Cancelar Agendamento</AlertDialogTitle>
                               <AlertDialogDescription>
-                                Tem certeza que deseja cancelar este agendamento de {agendamento.profiles?.nome}?
+                                Tem certeza que deseja cancelar este agendamento?
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
