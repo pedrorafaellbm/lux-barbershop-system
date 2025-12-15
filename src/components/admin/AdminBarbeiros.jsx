@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,31 +9,21 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { Loader2, Plus, Trash2, Edit } from 'lucide-react';
-
-interface Barbeiro {
-  id: string;
-  nome: string;
-  foto: string | null;
-  ativo: boolean;
-}
+import { barbeirosApi } from '@/lib/api';
 
 const AdminBarbeiros = () => {
-  const [barbeiros, setBarbeiros] = useState<Barbeiro[]>([]);
+  const [barbeiros, setBarbeiros] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingBarbeiro, setEditingBarbeiro] = useState<Barbeiro | null>(null);
+  const [editingBarbeiro, setEditingBarbeiro] = useState(null);
   const [formData, setFormData] = useState({ nome: '', foto: '', ativo: true });
   const [saving, setSaving] = useState(false);
 
   const fetchBarbeiros = async () => {
     try {
-      const { data, error } = await supabase
-        .from('barbeiros')
-        .select('*')
-        .order('nome');
-
-      if (error) throw error;
-      setBarbeiros(data || []);
+      const data = await barbeirosApi.getAll();
+      const sorted = (data || []).sort((a, b) => a.nome.localeCompare(b.nome));
+      setBarbeiros(sorted);
     } catch (error) {
       console.error('Erro ao buscar barbeiros:', error);
       toast.error('Erro ao carregar barbeiros');
@@ -47,7 +36,7 @@ const AdminBarbeiros = () => {
     fetchBarbeiros();
   }, []);
 
-  const handleOpenDialog = (barbeiro?: Barbeiro) => {
+  const handleOpenDialog = (barbeiro) => {
     if (barbeiro) {
       setEditingBarbeiro(barbeiro);
       setFormData({ nome: barbeiro.nome, foto: barbeiro.foto || '', ativo: barbeiro.ativo });
@@ -67,19 +56,18 @@ const AdminBarbeiros = () => {
     setSaving(true);
     try {
       if (editingBarbeiro) {
-        const { error } = await supabase
-          .from('barbeiros')
-          .update({ nome: formData.nome, foto: formData.foto || null, ativo: formData.ativo })
-          .eq('id', editingBarbeiro.id);
-
-        if (error) throw error;
+        await barbeirosApi.update(editingBarbeiro.id, { 
+          nome: formData.nome, 
+          foto: formData.foto || null, 
+          ativo: formData.ativo 
+        });
         toast.success('Barbeiro atualizado com sucesso');
       } else {
-        const { error } = await supabase
-          .from('barbeiros')
-          .insert({ nome: formData.nome, foto: formData.foto || null, ativo: formData.ativo });
-
-        if (error) throw error;
+        await barbeirosApi.create({ 
+          nome: formData.nome, 
+          foto: formData.foto || null, 
+          ativo: formData.ativo 
+        });
         toast.success('Barbeiro adicionado com sucesso');
       }
 
@@ -93,10 +81,9 @@ const AdminBarbeiros = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id) => {
     try {
-      const { error } = await supabase.from('barbeiros').delete().eq('id', id);
-      if (error) throw error;
+      await barbeirosApi.delete(id);
       toast.success('Barbeiro removido com sucesso');
       fetchBarbeiros();
     } catch (error) {
@@ -105,14 +92,9 @@ const AdminBarbeiros = () => {
     }
   };
 
-  const handleToggleAtivo = async (barbeiro: Barbeiro) => {
+  const handleToggleAtivo = async (barbeiro) => {
     try {
-      const { error } = await supabase
-        .from('barbeiros')
-        .update({ ativo: !barbeiro.ativo })
-        .eq('id', barbeiro.id);
-
-      if (error) throw error;
+      await barbeirosApi.update(barbeiro.id, { ativo: !barbeiro.ativo });
       toast.success(barbeiro.ativo ? 'Barbeiro desativado' : 'Barbeiro ativado');
       fetchBarbeiros();
     } catch (error) {

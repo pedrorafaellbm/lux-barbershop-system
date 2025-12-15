@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,32 +9,21 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { Loader2, Plus, Trash2, Edit } from 'lucide-react';
-
-interface Servico {
-  id: string;
-  nome: string;
-  preco: number;
-  duracao: number;
-  ativo: boolean;
-}
+import { servicosApi } from '@/lib/api';
 
 const AdminServicos = () => {
-  const [servicos, setServicos] = useState<Servico[]>([]);
+  const [servicos, setServicos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingServico, setEditingServico] = useState<Servico | null>(null);
+  const [editingServico, setEditingServico] = useState(null);
   const [formData, setFormData] = useState({ nome: '', preco: '', duracao: '', ativo: true });
   const [saving, setSaving] = useState(false);
 
   const fetchServicos = async () => {
     try {
-      const { data, error } = await supabase
-        .from('servicos')
-        .select('*')
-        .order('nome');
-
-      if (error) throw error;
-      setServicos(data || []);
+      const data = await servicosApi.getAll();
+      const sorted = (data || []).sort((a, b) => a.nome.localeCompare(b.nome));
+      setServicos(sorted);
     } catch (error) {
       console.error('Erro ao buscar serviços:', error);
       toast.error('Erro ao carregar serviços');
@@ -48,7 +36,7 @@ const AdminServicos = () => {
     fetchServicos();
   }, []);
 
-  const handleOpenDialog = (servico?: Servico) => {
+  const handleOpenDialog = (servico) => {
     if (servico) {
       setEditingServico(servico);
       setFormData({ 
@@ -86,19 +74,10 @@ const AdminServicos = () => {
     setSaving(true);
     try {
       if (editingServico) {
-        const { error } = await supabase
-          .from('servicos')
-          .update({ nome: formData.nome, preco, duracao, ativo: formData.ativo })
-          .eq('id', editingServico.id);
-
-        if (error) throw error;
+        await servicosApi.update(editingServico.id, { nome: formData.nome, preco, duracao, ativo: formData.ativo });
         toast.success('Serviço atualizado com sucesso');
       } else {
-        const { error } = await supabase
-          .from('servicos')
-          .insert({ nome: formData.nome, preco, duracao, ativo: formData.ativo });
-
-        if (error) throw error;
+        await servicosApi.create({ nome: formData.nome, preco, duracao, ativo: formData.ativo });
         toast.success('Serviço adicionado com sucesso');
       }
 
@@ -112,10 +91,9 @@ const AdminServicos = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id) => {
     try {
-      const { error } = await supabase.from('servicos').delete().eq('id', id);
-      if (error) throw error;
+      await servicosApi.delete(id);
       toast.success('Serviço removido com sucesso');
       fetchServicos();
     } catch (error) {
@@ -124,14 +102,9 @@ const AdminServicos = () => {
     }
   };
 
-  const handleToggleAtivo = async (servico: Servico) => {
+  const handleToggleAtivo = async (servico) => {
     try {
-      const { error } = await supabase
-        .from('servicos')
-        .update({ ativo: !servico.ativo })
-        .eq('id', servico.id);
-
-      if (error) throw error;
+      await servicosApi.update(servico.id, { ativo: !servico.ativo });
       toast.success(servico.ativo ? 'Serviço desativado' : 'Serviço ativado');
       fetchServicos();
     } catch (error) {

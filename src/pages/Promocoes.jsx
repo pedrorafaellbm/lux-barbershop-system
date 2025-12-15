@@ -1,57 +1,21 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { Calendar, Percent, Gift } from 'lucide-react';
 
-interface Cupom {
-  id: string;
-  codigo: string;
-  desconto: number;
-  valido_ate: string;
-  ativo: boolean;
-}
-
-interface Plano {
-  id: string;
-  nome: string;
-  desconto: number;
-  duracao_meses: number;
-  preco: number;
-  ativo: boolean;
-}
-
 const Promocoes = () => {
-  const [cupons, setCupons] = useState<Cupom[]>([]);
-  const [planos, setPlanos] = useState<Plano[]>([]);
+  const [cupons, setCupons] = useState([]);
+  const [planos, setPlanos] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchPromocoes();
+    // API endpoints for cupons and planos can be added later
+    setLoading(false);
   }, []);
 
-  const fetchPromocoes = async () => {
-    try {
-      const [cuponResult, planoResult] = await Promise.all([
-        supabase.from('cupons').select('*').eq('ativo', true).gte('valido_ate', new Date().toISOString().split('T')[0]),
-        supabase.from('planos').select('*').eq('ativo', true),
-      ]);
-
-      if (cuponResult.error) throw cuponResult.error;
-      if (planoResult.error) throw planoResult.error;
-
-      setCupons(cuponResult.data || []);
-      setPlanos(planoResult.data || []);
-    } catch (error) {
-      console.error('Error fetching promocoes:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const formatDate = (date: string) => {
+  const formatDate = (date) => {
     return new Date(date).toLocaleDateString('pt-BR');
   };
 

@@ -1,14 +1,7 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Instagram, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-
-interface GaleriaItem {
-  id: string;
-  url: string;
-  alt: string;
-}
 
 const imagensPadrao = [
   {
@@ -38,33 +31,13 @@ const imagensPadrao = [
 ];
 
 const Galeria = () => {
-  const [imagens, setImagens] = useState<{ url: string; alt: string }[]>([]);
+  const [imagens, setImagens] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchImagens = async () => {
-      try {
-        const { data, error } = await (supabase as any)
-          .from('galeria')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        if (error) throw error;
-        
-        if (data && data.length > 0) {
-          setImagens(data);
-        } else {
-          setImagens(imagensPadrao);
-        }
-      } catch (error) {
-        console.error('Erro ao buscar galeria:', error);
-        setImagens(imagensPadrao);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchImagens();
+    // Using default images for now - API endpoint for gallery can be added later
+    setImagens(imagensPadrao);
+    setLoading(false);
   }, []);
 
   if (loading) {

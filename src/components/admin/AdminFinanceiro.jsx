@@ -1,27 +1,14 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { format, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
+import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Loader2, DollarSign, TrendingUp, CreditCard } from 'lucide-react';
 
-interface Pagamento {
-  id: string;
-  valor: number;
-  metodo: string;
-  data_pagamento: string;
-  agendamentos: {
-    data: string;
-    profiles: { nome: string } | null;
-    servicos: { nome: string } | null;
-  } | null;
-}
-
 const AdminFinanceiro = () => {
-  const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
+  const [pagamentos, setPagamentos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [periodo, setPeriodo] = useState('mes');
   const [totalReceita, setTotalReceita] = useState(0);
@@ -29,36 +16,9 @@ const AdminFinanceiro = () => {
   const fetchPagamentos = async () => {
     setLoading(true);
     try {
-      let startDate: Date;
-      let endDate: Date;
-
-      if (periodo === 'mes') {
-        startDate = startOfMonth(new Date());
-        endDate = endOfMonth(new Date());
-      } else {
-        startDate = startOfYear(new Date());
-        endDate = endOfYear(new Date());
-      }
-
-      const { data, error } = await supabase
-        .from('pagamentos')
-        .select(`
-          *,
-          agendamentos:agendamento_id(
-            data,
-            profiles:cliente_id(nome),
-            servicos:servico_id(nome)
-          )
-        `)
-        .gte('data_pagamento', startDate.toISOString())
-        .lte('data_pagamento', endDate.toISOString())
-        .order('data_pagamento', { ascending: false });
-
-      if (error) throw error;
-
-      setPagamentos(data || []);
-      const total = (data || []).reduce((acc, p) => acc + Number(p.valor), 0);
-      setTotalReceita(total);
+      // Payments API endpoint can be added later
+      setPagamentos([]);
+      setTotalReceita(0);
     } catch (error) {
       console.error('Erro ao buscar pagamentos:', error);
       toast.error('Erro ao carregar dados financeiros');
@@ -71,8 +31,8 @@ const AdminFinanceiro = () => {
     fetchPagamentos();
   }, [periodo]);
 
-  const getMetodoLabel = (metodo: string) => {
-    const metodos: Record<string, string> = {
+  const getMetodoLabel = (metodo) => {
+    const metodos = {
       dinheiro: 'Dinheiro',
       pix: 'PIX',
       cartao_debito: 'Débito',
@@ -155,7 +115,7 @@ const AdminFinanceiro = () => {
         <CardContent>
           {pagamentos.length === 0 ? (
             <p className="text-muted-foreground text-center py-4">
-              Nenhum pagamento encontrado no período
+              Nenhum pagamento encontrado. Adicione endpoints de pagamentos à sua API.
             </p>
           ) : (
             <div className="overflow-x-auto">
@@ -177,8 +137,8 @@ const AdminFinanceiro = () => {
                           ? format(new Date(pagamento.data_pagamento), "dd/MM/yyyy", { locale: ptBR })
                           : 'N/A'}
                       </TableCell>
-                      <TableCell>{pagamento.agendamentos?.profiles?.nome || 'N/A'}</TableCell>
-                      <TableCell>{pagamento.agendamentos?.servicos?.nome || 'N/A'}</TableCell>
+                      <TableCell>{pagamento.cliente?.nome || 'N/A'}</TableCell>
+                      <TableCell>{pagamento.servico?.nome || 'N/A'}</TableCell>
                       <TableCell>{getMetodoLabel(pagamento.metodo)}</TableCell>
                       <TableCell className="font-semibold text-gold">
                         R$ {Number(pagamento.valor).toFixed(2)}

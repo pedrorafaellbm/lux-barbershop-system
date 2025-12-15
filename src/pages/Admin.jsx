@@ -1,15 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, DollarSign, Calendar, Users, Scissors, Image } from 'lucide-react';
+import { Loader2, DollarSign, Calendar, Users, Scissors } from 'lucide-react';
 import AdminAgendamentos from '@/components/admin/AdminAgendamentos';
 import AdminFinanceiro from '@/components/admin/AdminFinanceiro';
 import AdminBarbeiros from '@/components/admin/AdminBarbeiros';
 import AdminServicos from '@/components/admin/AdminServicos';
 import AdminGaleria from '@/components/admin/AdminGaleria';
+import { agendamentosApi, servicosApi } from '@/lib/api';
 
 const Admin = () => {
   const { user, userRole, loading: authLoading } = useAuth();
@@ -36,21 +36,20 @@ const Admin = () => {
   const fetchStats = async () => {
     try {
       const today = new Date().toISOString().split('T')[0];
-
-      const [agendamentosRes, servicosRes, profilesRes, pagamentosRes] = await Promise.all([
-        supabase.from('agendamentos').select('id').eq('data', today),
-        supabase.from('servicos').select('id').eq('ativo', true),
-        supabase.from('profiles').select('id'),
-        supabase.from('pagamentos').select('valor'),
+      
+      const [agendamentos, servicos] = await Promise.all([
+        agendamentosApi.getAll(),
+        servicosApi.getAll(),
       ]);
 
-      const receitaTotal = (pagamentosRes.data || []).reduce((acc, p) => acc + Number(p.valor), 0);
+      const agendamentosHoje = (agendamentos || []).filter(a => a.data === today);
+      const servicosAtivos = (servicos || []).filter(s => s.ativo);
 
       setStats({
-        receita: receitaTotal,
-        agendamentosHoje: agendamentosRes.data?.length || 0,
-        totalClientes: profilesRes.data?.length || 0,
-        servicosAtivos: servicosRes.data?.length || 0,
+        receita: 0,
+        agendamentosHoje: agendamentosHoje.length,
+        totalClientes: 0,
+        servicosAtivos: servicosAtivos.length,
       });
     } catch (error) {
       console.error('Erro ao buscar estatísticas:', error);
