@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
-// https://vitejs.dev/config/
+// Re-export from JS config for tsconfig.node.json compatibility
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
