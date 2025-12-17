@@ -1,79 +1,103 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { authApi, setToken, removeToken } from '@/lib/api';
+import { supabase } from '@/integrations/supabase/client';
 
 const AuthContext = createContext(undefined);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    checkAuth();
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          setTimeout(() => {
+            fetchUserRole(session.user.id);
+          }, 0);
+        } else {
+          setUserRole(null);
+        }
+      }
+    );
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        fetchUserRole(session.user.id);
+      }
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const checkAuth = async () => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      setLoading(false);
-      return;
-    }
-
+  const fetchUserRole = async (userId) => {
     try {
-      const userData = await authApi.me();
-      setUser(userData);
-      setUserRole(userData.role || 'cliente');
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .maybeSingle();
+      
+      if (error) {
+        console.error('Error fetching user role:', error);
+        setUserRole('cliente');
+        return;
+      }
+      
+      setUserRole(data?.role || 'cliente');
     } catch (error) {
-      console.error('Error checking auth:', error);
-      removeToken();
-    } finally {
-      setLoading(false);
+      console.error('Error fetching user role:', error);
+      setUserRole('cliente');
     }
   };
 
   const signUp = async (email, password, nome, telefone) => {
-    try {
-      const response = await authApi.register({ email, password, nome, telefone });
-      if (response.token) {
-        setToken(response.token);
-        const userData = await authApi.me();
-        setUser(userData);
-        setUserRole(userData.role || 'cliente');
+    const redirectUrl = `${window.location.origin}/`;
+    
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: redirectUrl,
+        data: {
+          nome,
+          telefone,
+        }
       }
-      return { error: null };
-    } catch (error) {
-      return { error };
-    }
+    });
+    
+    return { data, error };
   };
 
   const signIn = async (email, password) => {
-    try {
-      const response = await authApi.login(email, password);
-      if (response.user) {
-        setUser(response.user);
-        setUserRole(response.user.role || 'cliente');
-      } else {
-        const userData = await authApi.me();
-        setUser(userData);
-        setUserRole(userData.role || 'cliente');
-      }
-      return { error: null };
-    } catch (error) {
-      return { error };
-    }
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    return { data, error };
   };
 
   const signOut = async () => {
-    authApi.logout();
+    await supabase.auth.signOut();
     setUser(null);
+    setSession(null);
     setUserRole(null);
     navigate('/');
   };
 
   return (
-    <AuthContext.Provider value={{ user, session: null, loading, signUp, signIn, signOut, userRole }}>
+    <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signOut, userRole }}>
       {children}
     </AuthContext.Provider>
   );

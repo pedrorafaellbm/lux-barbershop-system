@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Instagram, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { galeriaApi } from '@/lib/api';
 
 const imagensPadrao = [
   {
@@ -35,9 +36,19 @@ const Galeria = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Using default images for now - API endpoint for gallery can be added later
-    setImagens(imagensPadrao);
-    setLoading(false);
+    const fetchImagens = async () => {
+      try {
+        const data = await galeriaApi.getAll();
+        setImagens(data && data.length > 0 ? data : imagensPadrao);
+      } catch (error) {
+        console.error('Erro ao buscar galeria:', error);
+        setImagens(imagensPadrao);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchImagens();
   }, []);
 
   if (loading) {
@@ -73,7 +84,7 @@ const Galeria = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {imagens.map((imagem, index) => (
             <Card
-              key={index}
+              key={imagem.id || index}
               className="bg-card border-border overflow-hidden hover:shadow-gold transition-smooth group"
             >
               <CardContent className="p-0">

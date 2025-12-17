@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { Loader2, Plus, Trash2 } from 'lucide-react';
+import { galeriaApi } from '@/lib/api';
 
 const AdminGaleria = () => {
   const [imagens, setImagens] = useState([]);
@@ -16,9 +17,15 @@ const AdminGaleria = () => {
   const [saving, setSaving] = useState(false);
 
   const fetchImagens = async () => {
-    // Gallery API endpoint can be added later
-    setImagens([]);
-    setLoading(false);
+    try {
+      const data = await galeriaApi.getAll();
+      setImagens(data || []);
+    } catch (error) {
+      console.error('Erro ao buscar imagens:', error);
+      toast.error('Erro ao carregar galeria');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -33,10 +40,11 @@ const AdminGaleria = () => {
 
     setSaving(true);
     try {
-      // API call would go here
-      toast.info('Funcionalidade de galeria será implementada com endpoint da API');
+      await galeriaApi.create(formData);
+      toast.success('Imagem adicionada com sucesso');
       setDialogOpen(false);
       setFormData({ url: '', alt: '' });
+      fetchImagens();
     } catch (error) {
       console.error('Erro ao salvar imagem:', error);
       toast.error('Erro ao salvar imagem');
@@ -47,8 +55,9 @@ const AdminGaleria = () => {
 
   const handleDelete = async (id) => {
     try {
-      // API call would go here
-      toast.info('Funcionalidade de galeria será implementada com endpoint da API');
+      await galeriaApi.delete(id);
+      toast.success('Imagem removida com sucesso');
+      fetchImagens();
     } catch (error) {
       console.error('Erro ao remover imagem:', error);
       toast.error('Erro ao remover imagem');
@@ -127,7 +136,7 @@ const AdminGaleria = () => {
       </CardHeader>
       <CardContent>
         {imagens.length === 0 ? (
-          <p className="text-muted-foreground text-center py-4">Nenhuma imagem na galeria. Adicione endpoints de galeria à sua API.</p>
+          <p className="text-muted-foreground text-center py-4">Nenhuma imagem na galeria</p>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {imagens.map((imagem) => (

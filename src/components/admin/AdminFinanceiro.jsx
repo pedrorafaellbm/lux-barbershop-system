@@ -3,9 +3,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
+import { format, startOfMonth, startOfYear } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Loader2, DollarSign, TrendingUp, CreditCard } from 'lucide-react';
+import { pagamentosApi } from '@/lib/api';
 
 const AdminFinanceiro = () => {
   const [pagamentos, setPagamentos] = useState([]);
@@ -16,9 +17,17 @@ const AdminFinanceiro = () => {
   const fetchPagamentos = async () => {
     setLoading(true);
     try {
-      // Payments API endpoint can be added later
-      setPagamentos([]);
-      setTotalReceita(0);
+      const data = await pagamentosApi.getAll();
+      const now = new Date();
+      const filterDate = periodo === 'mes' ? startOfMonth(now) : startOfYear(now);
+      
+      const filtered = (data || []).filter(p => {
+        const pDate = new Date(p.data_pagamento);
+        return pDate >= filterDate;
+      });
+      
+      setPagamentos(filtered);
+      setTotalReceita(filtered.reduce((sum, p) => sum + Number(p.valor), 0));
     } catch (error) {
       console.error('Erro ao buscar pagamentos:', error);
       toast.error('Erro ao carregar dados financeiros');

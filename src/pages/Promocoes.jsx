@@ -3,7 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Calendar, Percent, Gift } from 'lucide-react';
+import { Calendar, Percent, Gift, Loader2 } from 'lucide-react';
+import { cuponsApi, planosApi } from '@/lib/api';
 
 const Promocoes = () => {
   const [cupons, setCupons] = useState([]);
@@ -11,8 +12,22 @@ const Promocoes = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // API endpoints for cupons and planos can be added later
-    setLoading(false);
+    const fetchData = async () => {
+      try {
+        const [cuponsData, planosData] = await Promise.all([
+          cuponsApi.getAll(),
+          planosApi.getAll()
+        ]);
+        setCupons(cuponsData || []);
+        setPlanos(planosData || []);
+      } catch (error) {
+        console.error('Erro ao buscar promoções:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
   }, []);
 
   const formatDate = (date) => {
@@ -32,8 +47,8 @@ const Promocoes = () => {
         </div>
 
         {loading ? (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">Carregando promoções...</p>
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-gold" />
           </div>
         ) : (
           <div className="space-y-12">
@@ -93,7 +108,7 @@ const Promocoes = () => {
                       <CardContent className="space-y-4">
                         <div className="text-center py-4">
                           <div className="text-4xl font-bold text-gold mb-2">
-                            R$ {plano.preco.toFixed(2)}
+                            R$ {Number(plano.preco).toFixed(2)}
                           </div>
                           <Badge variant="secondary" className="bg-gold-dark text-background">
                             {plano.desconto}% de desconto
