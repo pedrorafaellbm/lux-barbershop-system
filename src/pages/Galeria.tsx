@@ -24,7 +24,7 @@ const imagensPadrao = [
     alt: 'Ambiente da barbearia',
   },
   {
-    url: 'https://images.unsplash.com/photo-1598971639058-fab3c3109a00?auto=format&fit=crop&w=800',
+    url: 'https://images.unsplash.com/photo-1595152772835-219674b2a8a6?auto=format&fit=crop&w=800',
     alt: 'Cliente satisfeito',
   },
   {
